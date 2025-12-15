@@ -108,6 +108,6 @@ if run_query:
 st.sidebar.header("Quick tips")
 st.sidebar.markdown(
     "- Add URLs or upload PDF/DOCX/TXT files, then click **Build knowledge base**.\n"
-    "- Start the local Ollama server and pull the `llama3:instruct` model before running.\n"
+    "- Set the `OPENAI_API_KEY` environment variable before running: `export OPENAI_API_KEY=...`.\n"
     "- Use concise questions for the best retrieval and answers."
 )

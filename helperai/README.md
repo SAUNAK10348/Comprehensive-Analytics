@@ -23,10 +23,10 @@ helperai/
 
 ## Setup (one go)
 1. Create and activate a virtual environment if desired.
-2. Install dependencies and run Streamlit (requires a local Ollama daemon with the `llama3:instruct` model pulled):
+2. Install dependencies and run Streamlit:
    ```bash
    pip install -r helperai/requirements.txt
-   ollama pull llama3:instruct
+   export OPENAI_API_KEY=your_key_here
    streamlit run helperai/app.py
    ```
 
@@ -42,7 +42,7 @@ helperai/
 - **Docs:** `pdfplumber`, `python-docx`, and TXT reader (`src/document_loader.py`).
 - **Embeddings:** `sentence-transformers` (`all-MiniLM-L6-v2`) + FAISS (`src/embedder.py`).
 - **Retrieval:** semantic search against the FAISS index (`src/retriever.py`).
-- **LLM:** Local Ollama chat completion (defaults to `llama3:instruct`) with contextual prompt (`src/llm.py`).
+- **LLM:** OpenAI chat completion with contextual prompt (`src/llm.py`).
 - **Analytics:** quick keyword frequency bar chart (`src/analytics.py`).
 
 ## Notes

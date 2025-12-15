@@ -1,15 +1,18 @@
-"""LLM helper for answering with context using a local Ollama model."""
+"""LLM helper for answering with context."""
 from __future__ import annotations
 
-import ollama
+import os
+from typing import Optional
+
+from openai import OpenAI
 
 
-DEFAULT_MODEL = "llama3:instruct"
+def ask_llm(query: str, context: str, model: str = "gpt-4o-mini") -> str:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise EnvironmentError("OPENAI_API_KEY not set")
 
-
-def ask_llm(query: str, context: str, model: str = DEFAULT_MODEL) -> str:
-    """Send a contextual prompt to the Ollama chat API and return the response."""
-
+    client = OpenAI(api_key=api_key)
     prompt = f"""
 Use the information below to answer the question.
 
@@ -22,13 +25,11 @@ Question:
 Answer clearly and concisely.
 """
 
-    completion = ollama.chat(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-        options={"temperature": 0.2},
+    completion = client.chat.completions.create(
+        model=model, messages=[{"role": "user", "content": prompt}], temperature=0.2
     )
 
-    return completion.message.get("content", "").strip()
+    return completion.choices[0].message.content.strip()
 
 
-__all__ = ["ask_llm", "DEFAULT_MODEL"]
+__all__ = ["ask_llm"]

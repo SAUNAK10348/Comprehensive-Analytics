@@ -5,7 +5,7 @@ from typing import List
 
 import faiss
 
-from embedder import embed_query
+from .embedder import embed_query
 
 
 def retrieve(query: str, index: faiss.IndexFlatL2, chunks: List[str], k: int = 5) -> List[str]:
