@@ -1,0 +1,90 @@
+{
+  "entity_types": {
+    "Person": {
+      "attributes": ["id", "name", "aliases", "title", "email", "source_refs", "description"],
+      "synonyms": ["individual", "employee", "staff", "user"]
+    },
+    "Organization": {
+      "attributes": ["id", "name", "aliases", "domain", "location", "source_refs", "description"],
+      "synonyms": ["company", "enterprise", "business", "org"]
+    },
+    "Product": {
+      "attributes": ["id", "name", "aliases", "version", "source_refs", "description"],
+      "synonyms": ["service", "offering", "tool", "platform"]
+    },
+    "System": {
+      "attributes": ["id", "name", "aliases", "environment", "source_refs", "description"],
+      "synonyms": ["application", "app", "service", "infra", "infrastructure"]
+    },
+    "Metric": {
+      "attributes": ["id", "name", "aliases", "unit", "source_refs", "description"],
+      "synonyms": ["kpi", "indicator", "measure", "measurement"]
+    },
+    "Policy": {
+      "attributes": ["id", "name", "aliases", "scope", "source_refs", "description"],
+      "synonyms": ["standard", "guideline", "rule", "procedure"]
+    },
+    "Process": {
+      "attributes": ["id", "name", "aliases", "owner", "source_refs", "description"],
+      "synonyms": ["workflow", "procedure", "operation"]
+    },
+    "Dataset": {
+      "attributes": ["id", "name", "aliases", "schema", "source_refs", "description"],
+      "synonyms": ["data source", "table", "data set"]
+    },
+    "Risk": {
+      "attributes": ["id", "name", "aliases", "severity", "source_refs", "description"],
+      "synonyms": ["threat", "issue", "hazard"]
+    },
+    "Control": {
+      "attributes": ["id", "name", "aliases", "owner", "source_refs", "description"],
+      "synonyms": ["mitigation", "safeguard", "measure"]
+    },
+    "Requirement": {
+      "attributes": ["id", "name", "aliases", "category", "source_refs", "description"],
+      "synonyms": ["need", "specification", "criteria"]
+    },
+    "Incident": {
+      "attributes": ["id", "name", "aliases", "severity", "source_refs", "description"],
+      "synonyms": ["outage", "breach", "event"]
+    }
+  },
+  "relation_types": {
+    "OWNS": { "domain": ["Organization"], "range": ["Product", "System", "Dataset"], "synonyms": ["owns", "controls", "manages"] },
+    "DEPENDS_ON": { "domain": ["System", "Process"], "range": ["System", "Product", "Dataset"], "synonyms": ["depends on", "requires", "relies on"] },
+    "MEASURES": { "domain": ["Metric"], "range": ["Process", "Product", "System"], "synonyms": ["measures", "tracks", "monitors"] },
+    "VIOLATES": { "domain": ["Incident", "Process"], "range": ["Policy", "Control"], "synonyms": ["violates", "breaks", "noncompliant with"] },
+    "MITIGATES": { "domain": ["Control", "Process"], "range": ["Risk", "Incident"], "synonyms": ["mitigates", "reduces", "prevents"] },
+    "PRODUCES": { "domain": ["Process", "System"], "range": ["Dataset", "Metric"], "synonyms": ["produces", "creates", "generates"] },
+    "CONSUMES": { "domain": ["Process", "System"], "range": ["Dataset", "Product"], "synonyms": ["consumes", "uses", "ingests"] },
+    "RELATED_TO": { "domain": ["Person", "Organization", "Product", "System", "Dataset", "Process", "Policy", "Incident", "Metric", "Risk", "Control", "Requirement"], "range": ["Person", "Organization", "Product", "System", "Dataset", "Process", "Policy", "Incident", "Metric", "Risk", "Control", "Requirement"], "synonyms": ["related to", "connected to", "associated with"] }
+  },
+  "constraints": {
+    "required_attributes": {
+      "Person": ["name"],
+      "Organization": ["name"],
+      "Product": ["name"],
+      "System": ["name"],
+      "Metric": ["name"],
+      "Policy": ["name"],
+      "Process": ["name"],
+      "Dataset": ["name"],
+      "Risk": ["name"],
+      "Control": ["name"],
+      "Requirement": ["name"],
+      "Incident": ["name"]
+    },
+    "validation": {
+      "severity_levels": ["info", "warning", "error"],
+      "edge_confidence_penalty": 0.2,
+      "co_occurrence_penalty": 0.15
+    }
+  },
+  "intent_bias": {
+    "policy": ["Policy", "Control"],
+    "metric": ["Metric"],
+    "dependency": ["System", "Process", "Dataset"],
+    "risk": ["Risk", "Incident", "Control"],
+    "default": ["Organization", "Product", "System", "Process", "Dataset"]
+  }
+}
