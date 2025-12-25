@@ -1,0 +1,12 @@
+streamlit==1.35.0
+pandas==2.2.2
+numpy==1.26.4
+PyPDF2==3.0.1
+python-docx==1.1.2
+rank-bm25==0.2.2
+faiss-cpu==1.7.4
+sentence-transformers==2.7.0
+networkx==3.2.1
+nltk==3.8.1
+requests==2.31.0
+scikit-learn==1.4.2
