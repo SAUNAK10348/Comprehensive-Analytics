@@ -1,0 +1,117 @@
+Kaggle GPU Setup & Hugging Face Model Access (Codespaces-friendly)
+================================================================
+
+This guide walks through running the ontology-driven Agentic RAG system on a Kaggle GPU (or GPU-enabled VM) while developing locally in GitHub Codespaces.
+
+Prerequisites
+-------------
+1) Kaggle account with GPU access enabled.
+2) GitHub Codespaces (or local dev) with Docker installed (Codespaces has Docker-in-Docker).
+3) Hugging Face account + token with model download permissions.
+
+Step 1 — Prepare Repository in Codespaces
+-----------------------------------------
+1. Open the repo in a Codespace.
+2. Create a virtual environment and install deps:
+   ```
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r helperai-agentic-rag/requirements.txt
+   ```
+3. (Optional) Set Hugging Face token for gated models:
+   ```
+   export HUGGINGFACE_TOKEN=hf_XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+   ```
+4. Run quick smoke test on CPU:
+   ```
+   cd helperai-agentic-rag
+   streamlit run app_streamlit.py --server.headless true
+   ```
+
+Step 2 — Build a GPU-Friendly Docker Image
+------------------------------------------
+1. Create `Dockerfile.gpu` in repo root (example):
+   ```
+   FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
+   RUN apt-get update && apt-get install -y python3 python3-pip git && rm -rf /var/lib/apt/lists/*
+   WORKDIR /workspace
+   COPY helperai-agentic-rag/requirements.txt requirements.txt
+   RUN pip3 install --upgrade pip && pip3 install -r requirements.txt
+   COPY helperai-agentic-rag/ .
+   ENV OLLAMA_MODEL=llama3
+   EXPOSE 8501
+   CMD ["streamlit", "run", "app_streamlit.py", "--server.port=8501", "--server.address=0.0.0.0"]
+   ```
+2. Build locally (CPU) to verify:
+   ```
+   docker build -f Dockerfile.gpu -t helperai-rag:gpu .
+   ```
+
+Step 3 — Push Image to Registry (Optional)
+------------------------------------------
+If you prefer to pull from Kaggle:
+1. Authenticate to a registry (e.g., GHCR):
+   ```
+   echo $GITHUB_TOKEN | docker login ghcr.io -u <your-username> --password-stdin
+   docker tag helperai-rag:gpu ghcr.io/<your-username>/helperai-rag:gpu
+   docker push ghcr.io/<your-username>/helperai-rag:gpu
+   ```
+
+Step 4 — Run on Kaggle GPU Notebook
+-----------------------------------
+1. Start a new Kaggle Notebook with GPU (e.g., T4/V100).
+2. In a cell, pull the repo and optional image:
+   ```
+   !git clone https://github.com/<your-username>/<repo>.git
+   %cd <repo>/helperai-agentic-rag
+   !pip install -r requirements.txt
+   ```
+   If using container image:
+   ```
+   !docker pull ghcr.io/<your-username>/helperai-rag:gpu
+   !docker run --gpus all -p 8501:8501 ghcr.io/<your-username>/helperai-rag:gpu
+   ```
+3. Set Hugging Face token for model downloads:
+   ```
+   import os
+   os.environ["HUGGINGFACE_TOKEN"] = "hf_XXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+   ```
+4. Launch Streamlit inside Kaggle (uses the notebook proxy):
+   ```
+   !streamlit run app_streamlit.py --server.address 0.0.0.0 --server.port 8501 --server.headless true
+   ```
+   Use the provided public URL output by Streamlit.
+
+Step 5 — Hugging Face Login Script Usage
+----------------------------------------
+The project includes `ensure_hf_login()` in `src/llm.py` to authenticate and download gated models.
+Example:
+```
+from src.llm import ensure_hf_login, load_embedding_model
+
+ensure_hf_login()  # reads HUGGINGFACE_TOKEN or prompts (in interactive shells)
+embed_model = load_embedding_model()
+```
+Set `HUGGINGFACE_TOKEN` before running to avoid prompts.
+
+Step 6 — GPU Notes
+------------------
+- For FAISS on GPU, install `faiss-gpu` in the Kaggle notebook:
+  ```
+  !pip uninstall -y faiss-cpu
+  !pip install faiss-gpu
+  ```
+- Sentence-transformers will auto-detect CUDA; ensure `torch` pulls CUDA wheels (Kaggle does this by default).
+- Reduce memory by limiting `TOP_K_DENSE`/`TOP_K_SPARSE` in `src/config.py` or via environment variables.
+
+Step 7 — API Keys & Security
+----------------------------
+- Ollama runs locally; if unavailable, the app falls back to extractive answers.
+- Keep tokens in environment variables (not notebooks). Use Kaggle secret scopes or `.env` mounted securely.
+- The verifier strips instruction-like text from evidence to reduce prompt injection risk.
+
+Troubleshooting
+---------------
+- If Streamlit cannot bind, choose a different port (e.g., 8502).
+- If embeddings download is slow, pre-download in Codespaces and mount `~/.cache/huggingface` into the container/notebook.
+- If FAISS installation fails, use the TF-IDF dense fallback (automatic) but expect lower semantic recall.
