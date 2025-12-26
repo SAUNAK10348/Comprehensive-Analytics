@@ -13,7 +13,7 @@ from typing import List
 import pandas as pd
 import streamlit as st
 
-from src.agents import AgentOrchestrator, AgentResult
+from src.agents import AgentOrchestrator
 from src.config import CONFIG
 from src.hybrid_retriever import HybridRetriever
 from src.ingest import ingest_document
@@ -103,7 +103,7 @@ def main() -> None:
                     ontology=st.session_state["ontology"],
                 )
                 with st.spinner("Running agentic loop..."):
-                    result: AgentResult = orchestrator.run(query)
+                    result = orchestrator.run(query)
                 st.subheader("Answer")
                 st.write(result["answer"])
 

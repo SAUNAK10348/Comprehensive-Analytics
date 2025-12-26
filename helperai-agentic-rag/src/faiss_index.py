@@ -63,8 +63,7 @@ class DenseFaissIndex:
         if not hasattr(self.vectorizer, "vocabulary_"):
             self.vectorizer.fit(texts)
         matrix = self.vectorizer.transform(texts)
-        dense = np.asarray(matrix.todense()).astype(np.float32)
-        return dense
+        return matrix.toarray().astype(np.float32)
 
     def build(self, chunks: List[Dict[str, str]]) -> None:
         """Build FAISS index from chunks."""
@@ -82,7 +81,7 @@ class DenseFaissIndex:
             return []
         k = top_k or CONFIG.top_k_dense
         q_vec = self._encode([clean_text(query)])
-        faiss.normalize_L2(q_vec)  # type: ignore[arg-type]
+        faiss.normalize_L2(q_vec)
         scores, idxs = self.index.search(q_vec, k)
         results: List[Tuple[Dict[str, str], float]] = []
         for idx, score in zip(idxs[0], scores[0]):

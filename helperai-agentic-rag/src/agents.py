@@ -8,35 +8,14 @@ import json
 import re
 import time
 import uuid
-from typing import Dict, List, Tuple, TypedDict, Any
+from typing import Dict, List, Tuple
 
 from .config import CONFIG
 from .eval_utils import evaluate_faithfulness, extract_citations
-from .hybrid_retriever import HybridRetriever, HybridResult
+from .hybrid_retriever import HybridRetriever
 from .kg_builder import KnowledgeGraphBuilder
 from .llm import answer_question
 from .ontology import Ontology
-
-
-class RetrievalPayload(TypedDict):
-    chunks: List[Dict[str, str]]
-    kg: List[Dict[str, object]]
-
-
-class AgentResult(TypedDict):
-    plan: Dict[str, object]
-    answer: str
-    verification: Dict[str, object]
-    evidence_chunks: List[Dict[str, str]]
-    kg_evidence: List[Dict[str, object]]
-    timings: Dict[str, float]
-    request_id: str
-
-
-class PlanSpec(TypedDict):
-    intent: str
-    subquestions: List[str]
-    ontology_lens: List[str]
 
 
 class PlannerAgent:
@@ -45,7 +24,7 @@ class PlannerAgent:
     def __init__(self, ontology: Ontology) -> None:
         self.ontology = ontology
 
-    def plan(self, query: str) -> PlanSpec:
+    def plan(self, query: str) -> Dict[str, object]:
         lower = query.lower()
         if any(k in lower for k in ["policy", "compliance", "standard"]):
             intent = "policy"
@@ -57,9 +36,8 @@ class PlannerAgent:
             intent = "risk"
         else:
             intent = "default"
-        subquestions: List[str] = [query]
-        ontology_lens: List[str] = list(self.ontology.bias_entities_for_intent(intent))
-        return {"intent": intent, "subquestions": subquestions, "ontology_lens": ontology_lens}
+        subquestions = [query]
+        return {"intent": intent, "subquestions": subquestions, "ontology_lens": self.ontology.bias_entities_for_intent(intent)}
 
 
 class RetrieverAgent:
@@ -69,7 +47,7 @@ class RetrieverAgent:
         self.retriever = retriever
         self.kg_builder = kg_builder
 
-    def retrieve(self, query: str, ontology_lens: List[str]) -> RetrievalPayload:
+    def retrieve(self, query: str, ontology_lens: List[str]) -> Dict[str, object]:
         text_results = self.retriever.retrieve(query, preferred_types=ontology_lens)
         chunks = [r["chunk"] for r in text_results]
         kg_hits = self.kg_builder.traverse(query, max_hops=CONFIG.kg_max_hops, max_neighbors=CONFIG.kg_max_neighbors)
@@ -106,11 +84,11 @@ class AgentOrchestrator:
         record = {"request_id": request_id, "event": event, **payload}
         print(json.dumps(record))
 
-    def run(self, query: str, max_turns: int = 2) -> AgentResult:
+    def run(self, query: str, max_turns: int = 2) -> Dict[str, object]:
         request_id = str(uuid.uuid4())
-        plan: PlanSpec = self.planner.plan(query)
+        plan = self.planner.plan(query)
         intent = plan["intent"]
-        ontology_lens: List[str] = plan["ontology_lens"]
+        ontology_lens = plan["ontology_lens"]
         all_chunks: List[Dict[str, str]] = []
         kg_evidence: List[Dict[str, object]] = []
         answer_payload: Dict[str, object] = {}
@@ -120,14 +98,14 @@ class AgentOrchestrator:
 
         for turn in range(max_turns):
             t0 = time.time()
-            retrieved = self.retriever_agent.retrieve(query, list(ontology_lens) if isinstance(ontology_lens, list) else [])
+            retrieved = self.retriever_agent.retrieve(query, ontology_lens)
             timings["retrieve"] = time.time() - t0
             all_chunks = retrieved["chunks"]
             kg_evidence = retrieved["kg"]
 
             llm_resp = answer_question(query, all_chunks, ontology_lens)
             timings["llm"] = llm_resp["latency"]
-            answer_text = str(llm_resp["answer"])
+            answer_text = llm_resp["answer"]
 
             verification = self.verifier.verify(answer_text, all_chunks)
             self._log(

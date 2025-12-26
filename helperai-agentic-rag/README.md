@@ -76,12 +76,6 @@ streamlit run app_streamlit.py
 
 ### Hugging Face Login & Local Models
 The LLM module exposes `ensure_hf_login()` to authenticate (token via `HUGGINGFACE_TOKEN`) and download models locally when internet or gated access is required.
-For Codespaces CPU/GPU smoke tests without Kaggle, you can preload a Llama pipeline:
-```bash
-cd helperai-agentic-rag
-export HUGGINGFACE_TOKEN=hf_XXXXXXXXXXXXXXXXXXXXXXXX
-python -m src.load_llama_pipeline --model meta-llama/Llama-3-8b-instruct --prompt "hello codespaces"
-```
 
 ## Configuration
 - `src/config.py` centralizes tunables (chunk sizes, retrieval weights, KG hops, temperatures, file size limits). All values can be overridden by environment variables.

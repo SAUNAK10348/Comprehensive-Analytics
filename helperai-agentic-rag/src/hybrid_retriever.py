@@ -4,18 +4,11 @@ Hybrid retrieval combining BM25 and FAISS.
 
 from __future__ import annotations
 
-from typing import Dict, List, TypedDict
+from typing import Dict, List
 
 from .bm25_index import BM25Index
 from .config import CONFIG
 from .faiss_index import DenseFaissIndex
-
-
-class HybridResult(TypedDict):
-    chunk: Dict[str, str]
-    bm25: float
-    dense: float
-    combined_score: float
 
 
 class HybridRetriever:
@@ -29,11 +22,11 @@ class HybridRetriever:
         self.bm25.build(chunks)
         self.faiss.build(chunks)
 
-    def retrieve(self, query: str, preferred_types: List[str] | None = None) -> List[HybridResult]:
+    def retrieve(self, query: str, preferred_types: List[str] | None = None) -> List[Dict[str, object]]:
         """Retrieve and merge results."""
         sparse = self.bm25.search(query, CONFIG.top_k_sparse)
         dense = self.faiss.search(query, CONFIG.top_k_dense)
-        combined: Dict[str, HybridResult] = {}
+        combined: Dict[str, Dict[str, object]] = {}
         for doc, score in sparse:
             cid = doc["chunk_id"]
             combined[cid] = {
